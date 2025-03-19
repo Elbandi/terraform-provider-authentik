@@ -10,6 +10,8 @@ permissions:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4.2.2
       - name: Unshallow
@@ -24,11 +26,6 @@ jobs:
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
-      - id: generate_token
-        uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a
-        with:
-          app_id: ${{ secrets.GH_APP_ID }}
-          private_key: ${{ secrets.GH_APP_PRIVATE_KEY }}
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@90a3faa9d0182683851fbfa97ca1a2cb983bfca3
         with:
@@ -36,18 +33,4 @@ jobs:
           args: release --clean
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
-      - name: Extract new version
-        id: version
-        run: |
-          cd dist/terraform-provider-authentik_linux_amd64_v1/
-          VERSION=$(./$(ls) -version)
-          echo "##[set-output name=version]$VERSION"
-      - name: Create a Sentry.io release
-        uses: getsentry/action-release@fa247637f74d407f51d8423a5dc10abae1917873
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: authentik-security-inc
-          SENTRY_PROJECT: terraform-provider-authentik
-        with:
-          release: terraform-provider-authentik@${{ steps.version.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
